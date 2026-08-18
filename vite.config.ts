@@ -6,6 +6,8 @@ import { defineConfig } from "vite";
 
 export default defineConfig({
   plugins: [react(), tailwindcss(), jsxLocPlugin()],
+  // 相对 base：本地 dev 与 GitHub Pages 子路径（/phaser-sky-striker/）都能正确解析资源。
+  base: "./",
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "client", "src"),

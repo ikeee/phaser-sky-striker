@@ -1,10 +1,10 @@
 import Phaser from "phaser";
 
 const ASSET_URLS = {
-  background: "/assets/storm_background.png",
-  player: "/assets/player_interceptor.png",
-  enemy: "/assets/enemy_drone.png",
-  mark: "/assets/sky_striker_mark.png",
+  background: `${import.meta.env.BASE_URL}assets/storm_background.png`,
+  player: `${import.meta.env.BASE_URL}assets/player_interceptor.png`,
+  enemy: `${import.meta.env.BASE_URL}assets/enemy_drone.png`,
+  mark: `${import.meta.env.BASE_URL}assets/sky_striker_mark.png`,
 };
 
 export class BootScene extends Phaser.Scene {
