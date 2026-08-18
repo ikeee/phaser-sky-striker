@@ -40,3 +40,13 @@
   demo 自动驾驶加入轻微上下漂移。
 - 新增程序化音效（`client/src/game/audio.ts`，Web Audio 合成，无外部资源）：开火、敌机
   爆炸（普通/精英）、受击、护盾拾取、结算、UI 点击；首次手势解锁，M 键静音开关。
+
+## v0.02.3（2026-08-18）
+
+- 清理 Manus 模板残留：
+  - `vite.config.ts`：移除三个 Manus 插件（ManusRuntime / DebugCollector /
+    StorageProxy）、Manus allowedHosts、`@assets`/`@shared` 别名（对应目录不存在或已删）。
+  - 删除：`vite-plugin-manus-runtime` 依赖、`client/public/__manus__/`、
+    `ManusDialog.tsx`（无引用）、`const.ts`（模板 OAuth 代码，无引用）、`shared/`、
+    `template.json`、`.project-config.json`、`.manus/`、`.manus-logs/`。
+- 验证：`pnpm check` / `pnpm build` 通过；`?demo=1` 实测战斗正常，console 0 错误 0 警告。
