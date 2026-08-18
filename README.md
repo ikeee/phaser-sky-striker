@@ -4,7 +4,7 @@ Sky Striker 是一款使用 **Phaser 4.2.1**、React 19、TypeScript 和 Vite �
 
 ## 环境要求
 
-建议使用 **Node.js 22.x** 与 **pnpm 10.x**。项目包含 `pnpm-lock.yaml`，请使用 pnpm 安装依赖，不要混用 npm 或 yarn。项目是纯浏览器端应用，不需要数据库、密钥、第三方 API 或 Manus 环境。
+建议使用 **Node.js 22.x** 与 **pnpm 10.x**。项目包含 `pnpm-lock.yaml`，请使用 pnpm 安装依赖，不要混用 npm 或 yarn。项目是纯浏览器端应用，不需要数据库、密钥、第三方 API 。
 
 > **pnpm 版本注意事项**：lockfile 由 pnpm 10 生成（`packageManager` 固定为 `pnpm@10.4.1`）。
 > **安装依赖请使用 `corepack pnpm install --frozen-lockfile`**（corepack 会自动使用 10.4.1）。
@@ -22,7 +22,7 @@ pnpm install
 pnpm dev
 ```
 
-Vite 会在终端输出本地访问地址，固定为 `http://localhost:5173/`（与本地 Nuxt 的 3000 端口隔离）。点击“锁定航线”或按 Enter 即可进入战斗。
+Vite 会在终端输出本地访问地址，固定为 `http://localhost:5173/`。点击“锁定航线”或按 Enter 即可进入战斗。
 
 要验证可重复的真实战斗画面，请访问：
 
