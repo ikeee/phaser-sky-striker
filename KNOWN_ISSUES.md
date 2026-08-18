@@ -44,9 +44,13 @@
 | K-01 | 声称已修复 | **实际未生效，已真正修复。** Phaser 4.2.1 不会自动调用场景类上名为 `shutdown()` 的方法（`Systems.shutdown()` 只 emit `SHUTDOWN` 事件）。原修复把解绑写在 `shutdown()` 里属于死代码，重开后 P 键仍会叠加监听。已改为 `this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.handleShutdown, this)`，重开后按 P 实测可正常暂停/恢复。 |
 | K-13（新增·严重） | 交接包回归 | **玩家子弹被立即回收，射击失效。** 交接包把 `clean()` 的 `limit` 参数改为下半界后，`clean(this.playerBullets, -60)` 使 `sprite.y > -60` 对创建于 y≈552 的子弹恒真，子弹约 1 帧后被禁用。实测 `?demo=1` 运行 6 秒：`activeBullets=0`、`score=0`、`combo=0`。已改为显式上下界 `clean(this.playerBullets, -80, GAME_HEIGHT + 90)`，实测子弹正常推进至顶部回收、击杀与计分正常。 |
 | K-12（新增） | Manus 模板残留 | `client/index.html` 中的 `%VITE_ANALYTICS_ENDPOINT%/umami` 脚本占位导致 404 与控制台报错，已移除；修复后 console 0 错误 0 警告。 |
-| K-15（新增·已知限制） | 演示模式局限 | `?demo=1` 的自动驾驶机不躲避，约 5 秒内被击落，长时截图会变成 Game Over 画面；且子弹柱与随机敌机几何上经常错开，短窗口内命中率偏低。不是碰撞 bug（实测重叠可正常击杀）。建议后续为演示模式关闭玩家受击或延长无敌，以便稳定产出战斗截图。 |
+| K-15（v0.02.1 已修复） | 演示模式局限 | `?demo=1` 原约 5 秒被击落、长截图变 Game Over。已在 `onPlayerHit()` 顶部加 `if (this.autoPilot) return;`：demo 模式下玩家机幽灵穿过敌方弹/敌机，不掉甲、不结算。实测运行 22 秒仍在战斗（`ended=false`、`armor=3`、`score=400`）。 |
 | 调试钩子（新增） | 开发辅助 | `client/src/game/game.ts` 在 `import.meta.env.DEV` 下暴露 `window.__skyStriker`，生产构建不含。便于未来自动化状态回归（弹体、分数、暂停态），若不需要可删除。 |
 
 > 技术依据：Phaser 官方仓库 [phaserjs/phaser](https://github.com/phaserjs/phaser)，
 > `src/scene/Systems.js` 的 `shutdown()` 仅 `events.emit(Events.SHUTDOWN)`；场景文档明确
 > 用 `this.events.on('shutdown', listener)` 监听。
+
+## v0.02.1（2026-08-18）
+
+- K-15 已修复：demo 模式免伤（见上表）。`?demo=1` 现在可稳定产出长时战斗截图。

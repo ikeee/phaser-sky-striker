@@ -322,6 +322,8 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private onPlayerHit(first: unknown, second: unknown) {
+    // K-15：demo 模式免伤——玩家机如幽灵穿过敌方弹/敌机，不掉甲、不结算、保持稳定战斗画面。
+    if (this.autoPilot) return;
     const other = first === this.player ? second as Ship : first as Ship;
     if (this.invulnerable || this.ended) return;
     if (other.active) other.disableBody(true, true);

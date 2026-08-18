@@ -28,3 +28,8 @@
 - 变更：`client/src/game/game.ts` 增加 DEV 调试钩子 `window.__skyStriker`；README 补充
   pnpm 版本注意事项。
 - 环境：安装依赖统一使用 `corepack pnpm install --frozen-lockfile`（pnpm 10.4.1）。
+
+## v0.02.1（2026-08-18）
+
+- K-15 已修复：`?demo=1` 演示模式免伤（`onPlayerHit` 在 autoPilot 下直接返回），玩家机
+  幽灵穿过敌方弹/敌机，不掉甲、不死亡，可稳定产出长时战斗截图。实测运行 22 秒仍 `ended=false`。
