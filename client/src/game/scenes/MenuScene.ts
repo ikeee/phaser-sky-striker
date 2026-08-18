@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH } from "../game";
+import { sfx, unlockAudio } from "../audio";
 
 export class MenuScene extends Phaser.Scene {
   constructor() {
@@ -64,14 +65,18 @@ export class MenuScene extends Phaser.Scene {
     }).setOrigin(0.5);
     start.add([panel, label]).setSize(364, 62).setInteractive({ useHandCursor: true });
 
-    const launch = () => this.scene.start("battle");
+    const launch = () => {
+      unlockAudio();
+      sfx.uiClick();
+      this.scene.start("battle");
+    };
     start.on("pointerover", () => start.setScale(1.04));
     start.on("pointerout", () => start.setScale(1));
     start.on("pointerdown", launch);
     this.input.keyboard?.once("keydown-ENTER", launch);
     this.input.keyboard?.once("keydown-SPACE", launch);
 
-    this.add.text(GAME_WIDTH / 2, 618, "WASD / 方向键：机动     火控：自动     P：中止", {
+    this.add.text(GAME_WIDTH / 2, 618, "WASD / 方向键：机动     火控：自动     P：暂停    M：音效", {
       fontFamily: "IBM Plex Mono, monospace",
       fontSize: "14px",
       color: "#9AB6B6",

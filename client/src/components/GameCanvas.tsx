@@ -34,7 +34,7 @@ export default function GameCanvas() {
         <span>进入雷暴航道</span>
       </aside>
       <p className="sr-only">
-        使用方向键或 WASD 控制拦截机左右移动，自动开火。按 P 暂停或继续任务。
+        使用方向键或 WASD 控制拦截机上下左右移动，自动开火。按 P 暂停或继续任务，按 M 开关音效。
       </p>
     </main>
   );

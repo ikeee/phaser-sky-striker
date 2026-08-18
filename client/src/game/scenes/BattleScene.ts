@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH } from "../game";
+import { setMuted, sfx, unlockAudio } from "../audio";
 
 type Ship = Phaser.Physics.Arcade.Sprite;
 
@@ -10,7 +11,12 @@ export class BattleScene extends Phaser.Scene {
   private enemyBullets!: Phaser.Physics.Arcade.Group;
   private pickups!: Phaser.Physics.Arcade.Group;
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
-  private moveKeys!: { left: Phaser.Input.Keyboard.Key; right: Phaser.Input.Keyboard.Key };
+  private moveKeys!: {
+    left: Phaser.Input.Keyboard.Key;
+    right: Phaser.Input.Keyboard.Key;
+    up: Phaser.Input.Keyboard.Key;
+    down: Phaser.Input.Keyboard.Key;
+  };
   private backgroundA!: Phaser.GameObjects.Image;
   private backgroundB!: Phaser.GameObjects.Image;
   private rainLayer!: Phaser.GameObjects.TileSprite;
@@ -31,8 +37,12 @@ export class BattleScene extends Phaser.Scene {
   private paused = false;
   private touchLeft = false;
   private touchRight = false;
+  private touchUp = false;
+  private touchDown = false;
   private autoPilot = false;
   private pauseHandler?: () => void;
+  private soundHandler?: () => void;
+  private soundOn = true;
 
   constructor() {
     super("battle");
@@ -54,6 +64,9 @@ export class BattleScene extends Phaser.Scene {
     this.startTimers();
     // Phaser 不会自动调用场景类上名为 shutdown() 的方法；必须订阅 SHUTDOWN 事件才能做清理。
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.handleShutdown, this);
+    // 首次手势/按键解锁音频（浏览器自动播放策略）；菜单启动已解锁，这里为 demo/直入场景兜底。
+    this.input.once("pointerdown", unlockAudio);
+    this.input.keyboard?.once("keydown", unlockAudio);
     if (this.autoPilot) {
       this.spawnEnemy(318, 126, false);
       this.spawnEnemy(786, 204, true);
@@ -137,7 +150,7 @@ export class BattleScene extends Phaser.Scene {
     strip.fillTriangle(247, 0, 218, -18, 218, 18);
     strip.lineStyle(1, 0x44f5d6, 0.32);
     strip.strokeRect(-218, -18, 436, 36);
-    const controlsText = this.add.text(0, 0, "← / →  机动     ·     火控：自动     ·     P  中止", {
+    const controlsText = this.add.text(0, 0, "WASD/方向键 机动  ·  火控自动  ·  P 暂停  ·  M 音效", {
       fontFamily: "IBM Plex Mono, monospace", fontSize: "12px", color: "#AFC6C5",
     }).setOrigin(0.5);
     controls.add([strip, controlsText]);
@@ -145,8 +158,8 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private createTouchControls() {
-    const makeControl = (x: number, label: string, onDown: () => void, onUp: () => void) => {
-      const control = this.add.container(x, GAME_HEIGHT - 116).setDepth(32);
+    const makeControl = (x: number, y: number, label: string, onDown: () => void, onUp: () => void) => {
+      const control = this.add.container(x, y).setDepth(32);
       const backing = this.add.graphics();
       backing.fillStyle(0x061a22, 0.84);
       backing.fillRect(-24, -28, 48, 56);
@@ -160,15 +173,25 @@ export class BattleScene extends Phaser.Scene {
       control.on("pointerup", onUp);
       control.on("pointerout", onUp);
     };
-    makeControl(86, "◀", () => { this.touchLeft = true; }, () => { this.touchLeft = false; });
-    makeControl(GAME_WIDTH - 86, "▶", () => { this.touchRight = true; }, () => { this.touchRight = false; });
+    // 左侧：◀ ▶（横向）；右侧：▲ ▼（纵向）
+    makeControl(86, GAME_HEIGHT - 116, "◀", () => { this.touchLeft = true; }, () => { this.touchLeft = false; });
+    makeControl(160, GAME_HEIGHT - 116, "▶", () => { this.touchRight = true; }, () => { this.touchRight = false; });
+    makeControl(GAME_WIDTH - 86, GAME_HEIGHT - 190, "▲", () => { this.touchUp = true; }, () => { this.touchUp = false; });
+    makeControl(GAME_WIDTH - 86, GAME_HEIGHT - 116, "▼", () => { this.touchDown = true; }, () => { this.touchDown = false; });
   }
 
   private createInput() {
     this.cursors = this.input.keyboard?.createCursorKeys() as Phaser.Types.Input.Keyboard.CursorKeys;
-    this.moveKeys = this.input.keyboard?.addKeys({ left: "A", right: "D" }) as { left: Phaser.Input.Keyboard.Key; right: Phaser.Input.Keyboard.Key };
+    this.moveKeys = this.input.keyboard?.addKeys({ left: "A", right: "D", up: "W", down: "S" }) as {
+      left: Phaser.Input.Keyboard.Key;
+      right: Phaser.Input.Keyboard.Key;
+      up: Phaser.Input.Keyboard.Key;
+      down: Phaser.Input.Keyboard.Key;
+    };
     this.pauseHandler = () => this.togglePause();
     this.input.keyboard?.on("keydown-P", this.pauseHandler);
+    this.soundHandler = () => this.toggleSound();
+    this.input.keyboard?.on("keydown-M", this.soundHandler);
     this.physics.add.overlap(this.playerBullets, this.enemies, this.onBulletHitEnemy, undefined, this);
     this.physics.add.overlap(this.enemyBullets, this.player, this.onPlayerHit, undefined, this);
     this.physics.add.overlap(this.enemies, this.player, this.onPlayerHit, undefined, this);
@@ -202,18 +225,24 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private updatePlayer(time: number) {
-    let velocity = 0;
+    let vx = 0;
+    let vy = 0;
     if (this.autoPilot) {
       const targetX = GAME_WIDTH / 2 + Math.sin(time / 700) * 260;
-      velocity = Phaser.Math.Clamp((targetX - this.player.x) * 2.6, -560, 560);
+      const targetY = GAME_HEIGHT - 210 + Math.sin(time / 1100) * 130;
+      vx = Phaser.Math.Clamp((targetX - this.player.x) * 2.6, -560, 560);
+      vy = Phaser.Math.Clamp((targetY - this.player.y) * 2.2, -300, 300);
     } else {
       const left = this.cursors.left?.isDown || this.moveKeys.left?.isDown || this.touchLeft;
       const right = this.cursors.right?.isDown || this.moveKeys.right?.isDown || this.touchRight;
-      if (left) velocity = -480;
-      if (right) velocity = 480;
+      const up = this.cursors.up?.isDown || this.moveKeys.up?.isDown || this.touchUp;
+      const down = this.cursors.down?.isDown || this.moveKeys.down?.isDown || this.touchDown;
+      vx = (right ? 480 : 0) - (left ? 480 : 0);
+      vy = (down ? 420 : 0) - (up ? 420 : 0);
     }
-    this.player.setVelocityX(velocity);
-    this.player.setAngle(Phaser.Math.Clamp(velocity / 58, -8, 8));
+    this.player.setVelocityX(vx);
+    this.player.setVelocityY(vy);
+    this.player.setAngle(Phaser.Math.Clamp(vx / 58, -8, 8));
   }
 
   private updateEntities() {
@@ -246,6 +275,7 @@ export class BattleScene extends Phaser.Scene {
     bullet.enableBody(true, this.player.x, this.player.y - 48, true, true);
     bullet.setDisplaySize(12, 28).setVelocityY(-760).setDepth(9);
     bullet.body?.setSize(10, 22, true);
+    sfx.fire();
   }
 
   private spawnEnemy(x = Phaser.Math.Between(150, GAME_WIDTH - 150), startY = -70, forcedElite?: boolean) {
@@ -316,6 +346,8 @@ export class BattleScene extends Phaser.Scene {
     const points = enemy.getData("elite") ? 550 : 100;
     this.score += points * Math.max(1, Math.floor(this.combo / 5) + 1);
     this.combo += 1;
+    if (enemy.getData("elite")) sfx.eliteDown();
+    else sfx.enemyDown();
     this.explode(enemy.x, enemy.y);
     enemy.disableBody(true, true);
     this.updateHud();
@@ -326,6 +358,7 @@ export class BattleScene extends Phaser.Scene {
     if (this.autoPilot) return;
     const other = first === this.player ? second as Ship : first as Ship;
     if (this.invulnerable || this.ended) return;
+    sfx.playerHit();
     if (other.active) other.disableBody(true, true);
     this.armor -= 1;
     this.combo = 0;
@@ -340,6 +373,7 @@ export class BattleScene extends Phaser.Scene {
     const pickup = pickupObj as Ship;
     if (!pickup.active || this.ended) return;
     pickup.disableBody(true, true);
+    sfx.shield();
     this.armor = Math.min(3, this.armor + 1);
     this.score += 180;
     this.statusText.setText("ION SHIELD RESTORED");
@@ -383,6 +417,7 @@ export class BattleScene extends Phaser.Scene {
 
   private endMission() {
     this.ended = true;
+    sfx.gameOver();
     this.player.setVelocity(0, 0).setAlpha(0.45);
     this.spawnTimer?.remove(false);
     this.enemyShotTimer?.remove(false);
@@ -402,10 +437,21 @@ export class BattleScene extends Phaser.Scene {
 
   private handleShutdown() {
     if (this.pauseHandler) this.input.keyboard?.off("keydown-P", this.pauseHandler);
+    if (this.soundHandler) this.input.keyboard?.off("keydown-M", this.soundHandler);
     this.pauseHandler = undefined;
+    this.soundHandler = undefined;
     this.spawnTimer?.remove(false);
     this.enemyShotTimer?.remove(false);
     this.shieldTimer?.remove(false);
     this.tweens.killAll();
+  }
+
+  private toggleSound() {
+    this.soundOn = !this.soundOn;
+    setMuted(!this.soundOn);
+    this.statusText.setText(this.soundOn ? "SOUND: ON" : "SOUND: OFF");
+    this.time.delayedCall(1100, () => {
+      if (!this.ended && !this.paused) this.statusText.setText("");
+    });
   }
 }
