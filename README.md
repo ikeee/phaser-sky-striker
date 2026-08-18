@@ -2,6 +2,9 @@
 
 Sky Striker 是一款使用 **Phaser 4.2.1**、React 19、TypeScript 和 Vite 构建的浏览器端 2D 纵向飞机射击游戏。React 只负责承载和销毁一个全屏 Phaser 画布；所有战斗循环、对象池、碰撞、输入和 HUD 都位于 `client/src/game/`。
 
+> **在线试玩（GitHub Pages）：** https://ikeee.github.io/phaser-sky-striker/
+> 附加 `?demo=1` 可直接进入自动演示。
+
 ## 环境要求
 
 建议使用 **Node.js 22.x** 与 **pnpm 10.x**。项目包含 `pnpm-lock.yaml`，请使用 pnpm 安装依赖，不要混用 npm 或 yarn。项目是纯浏览器端应用，不需要数据库、密钥、第三方 API 。

@@ -74,3 +74,20 @@
   源码可读性收益）。
 - 验证：`?demo=1&wave=4&armor=9&fire=90` 实测参数全部生效；BGM 随手势启动无报错；
   `pnpm check` / `pnpm build` 通过。
+
+## v0.05（2026-08-18）
+
+- **GitHub Pages 在线版**：https://ikeee.github.io/phaser-sky-striker/（已实测可玩）。
+  - vite `base: "./"`；BootScene 资产路径改 `import.meta.env.BASE_URL`；favicon 用 `%BASE_URL%`。
+  - 路由 base 从 `window.location.pathname` 计算（dev `/`、Pages 子路径 `/phaser-sky-striker/`），
+    修复子路径下 wouter 落到 NotFound 的问题。
+- 自动部署 workflow（`.github/workflows/deploy.yml`）已就绪但因 gh token 缺 `workflow`
+  scope 暂未入库；授权后推送即可实现 push 自动部署。
+- 验证：本地 4 纹理正常加载、构建产物相对引用；线上站点 Phaser WebGL 正常、console 0 错误。
+
+## v0.05.2（2026-08-18）
+
+- 字体自托管：Barlow Condensed（500/700/700i/800i）+ IBM Plex Mono（400/500/600）latin
+  子集下载到 `client/src/assets/fonts/`，`index.css` 加 `@font-face`；`index.html` 的
+  Google Fonts 链接只保留 Noto Sans SC。离线时英文 HUD/标题不再依赖网络。
+- 验证：浏览器实测字体已加载（无 404）、`pnpm check`/`pnpm build` 通过。
