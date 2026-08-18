@@ -1,37 +1,37 @@
-# Assets
+# Sky Striker 资产清单
 
-**Art direction：** 复古未来主义航空插画与高对比街机 HUD。游戏采用直接俯视的纵向卷轴镜头：深海蓝绿雷暴云层为低对比背景，玩家、生命与正向反馈使用电离青绿，能源与高价值读数使用雷暴琥珀，敌方威胁使用克制的朱红。画面保持锋利的平面层次、细颗粒纹理和明确的对象分离，避免拟真雾化、镜头光晕与不可读的细节。
+**版本：** v0.01  
+**运行时策略：** 四张生成 PNG 随项目存放在 `client/public/assets/`，由 `BootScene.ts` 通过稳定的本地根路径加载。项目在本地运行、离线开发和生产构建时均不依赖 `/manus-storage/`、Manus 账户或任何临时外部资源链接。
 
-## Visual Target
+## 艺术方向
 
-| 名称 | 说明 | 显示规格 | 运行时位置 |
-|---|---|---|---|
-| `sky_striker_reference` | 含玩家、敌机、子弹、护盾和 HUD 的最终画面参考；用于构图与色彩 QA，不在游戏中直接加载。 | 16:9 视觉参考 | `/manus-storage/sky-striker-reference_dd63a738.png` |
+游戏采用复古未来主义航空插画与高对比街机 HUD：深海蓝绿的雷暴云层保持低对比，电离青绿只用于玩家和正向反馈，朱红/琥珀用于敌方威胁、能量与警示。所有精灵遵循顶视角、清晰轮廓和小尺寸下可辨识的原则。
 
-## Backgrounds
+## 文件资产
 
-| 名称 | 说明 | 显示规格 | 运行时位置 |
-|---|---|---|---|
-| `storm_background` | 带中央航道的深蓝绿色雷暴云海，提供远景云层与雨线质感。 | 填满 1280×720 视口；纵向循环滚动 | `/manus-storage/sky-striker-storm-background_4c9b0839.png` |
+| 资产 ID | 本地文件 | BootScene 加载 key | 显示规格 | 透明底 | SHA-256 | 作用 |
+|---|---|---|---|---|---|---|
+| `storm_background` | `client/public/assets/storm_background.png` | `storm-background` | 填满 1280×720，纵向循环 | 否 | `91a5497154bb78adfd5ac54118e4f177198b52af5132005ffe6c9c148599aa85` | 雷暴云层和中央航道背景。 |
+| `player_interceptor` | `client/public/assets/player_interceptor.png` | `player-interceptor` | 80×80 px | 是 | `bb6ee127bad885eebd71e6f04e053102563c613534fd01e2fdd4c785163fe438` | 玩家拦截机，机头朝上。 |
+| `enemy_drone` | `client/public/assets/enemy_drone.png` | `enemy-drone` | 普通 64×64 px；精英 82×82 px | 是 | `0b63e47807e08cb9f09bff915332696c2f0d18f767ffcbd270cbbed1c328e308` | 敌方三角翼无人截击机，机头朝下。 |
+| `sky_striker_mark` | `client/public/assets/sky_striker_mark.png` | `sky-striker-mark` | 菜单 74×74 px；移动端品牌图标 40×40 px | 是 | `78d6acfea4daa37c6cef20f2fb0a54c602cb42bb0c6a9cc0bce39f707b05596f` | 无文字三角翼/航迹品牌标记和 favicon。 |
 
-## Sprites
+## 程序化纹理
 
-| 名称 | 说明 | 显示规格 | 运行时位置 |
-|---|---|---|---|
-| `player_interceptor` | 青绿色紧凑型拦截机，机头朝上；用于玩家实体。 | 80×80 px | `/manus-storage/sky-striker-player-interceptor_7e971a3d.png` |
-| `enemy_drone` | 暗色三角翼无人截击机，机头朝下；用于普通与精英敌机实体。 | 64×64 px（精英 82×82 px） | `/manus-storage/sky-striker-enemy-drone_431ce67e.png` |
-| `sky_striker_mark` | 无文字三角翼/航迹品牌图标；用于菜单徽记与游戏内小型标识。 | 56×56 px（移动端 40×40 px） | `/manus-storage/sky-striker-mark_1bb5bbaa.png` |
+以下纹理无需文件，均由 `BootScene.createProceduralTextures()` 使用 Phaser `Graphics` 创建，并在战斗中由对象池复用。
 
-## Procedural Runtime Art
+| 运行时 key | 规格 | 用途 |
+|---|---|---|
+| `player-bullet` | 16×30 px | 青绿色、向上飞行的玩家能量弹。 |
+| `enemy-bullet` | 14×14 px | 琥珀色敌方追踪/瞄准弹。 |
+| `shield` | 44×44 px | 琥珀核心与青绿外环的护盾拾取物。 |
+| `blast` | 64×64 px | 琥珀、朱红和浅黄组合的短促爆炸。 |
+| `rain` | 140×180 px | 斜向低透明雨线，作为滚动覆盖层。 |
 
-| 名称 | 说明 | 显示规格 | 实现方式 |
-|---|---|---|---|
-| `player_bullet` | 向上飞行的青绿细长能量弹。 | 6×22 px | Phaser `Graphics` 生成纹理，对象池复用 |
-| `enemy_bullet` | 向下飞行的琥珀色圆形追踪弹。 | 10×10 px | Phaser `Graphics` 生成纹理，对象池复用 |
-| `shield_pickup` | 琥珀核心、青绿外环的护盾补给。 | 34×34 px | Phaser `Graphics` 生成纹理，tween 旋转 |
-| `explosion` | 由琥珀与朱红粒子构成的短促爆炸。 | 64×64 px | Phaser 粒子与圆形纹理 |
-| `rain_streak` | 低透明的斜向雨线。 | 2×64 px | Phaser 线条纹理，多层向下滚动 |
+## 加载与兜底行为
 
-## 资产接入与审查说明
+`BootScene` 使用上表的 key 载入所有 PNG。若任意 PNG 在运行时缺失或加载失败，Phaser 不会创建对应纹理；后续场景通过 `this.textures.exists(key)` 检查并执行以下回退：背景使用 `rain` 程序化纹理，玩家使用 `shield` 纹理，敌机使用 `blast` 纹理，菜单品牌图标使用程序化三角形。该回退只用于保持调试可进入场景；正式交付必须确保四张 PNG 完整存在且哈希匹配。
 
-所有运行时艺术资源均以 WebDev 托管路径加载，不被复制进项目仓库。程序化几何仅承担子弹、补给、雨线和爆炸等小型动态元素；玩家机、敌机、背景与品牌图标则使用生成资产，保证游戏具有明确的非占位视觉方向。实现时应保持透明底精灵的原始比例，不将背景图作为精灵拉伸；若生成过程中的占位图片尚未替换为最终图像，则可以先用同名 URL 接入，托管资源完成后会自动更新。
+## 来源与使用说明
+
+四张 PNG 在本项目的制作过程中由 Manus 内置图像生成流程生成，并以原创游戏视觉资产用途记录。它们不包含已知第三方角色、商标或受版权保护作品的复刻元素。交接包随附实际文件和 SHA-256 校验值；在商业发行前，项目维护者仍应根据所使用生成服务在发行时有效的条款进行最终权利和商标审查。

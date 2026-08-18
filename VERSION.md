@@ -1,0 +1,30 @@
+# Sky Striker 版本信息
+
+| 字段 | 内容 |
+|---|---|
+| 当前版本 | **v0.01** |
+| 交接基线 | Manus 项目版本 `2b751b0c` |
+| 交付时间 | 2026-08-18（GMT+8） |
+| 技术栈 | Phaser 4.2.1、React 19、TypeScript、Vite 7、Tailwind 4 |
+| 运行形态 | 单人、纯浏览器端、16:9 横屏街机射击游戏 |
+
+## 已实现功能
+
+玩家可使用方向键、WASD 或横屏触控控制器进行左右机动，并持续自动开火。普通与精英敌机会生成、横向漂移并以错峰瞄准弹反击；双方弹体、敌机和拾取物都通过 Arcade Physics 组复用。游戏实现了得分、连击、装甲、护盾拾取、完整暂停、死亡结算、无刷新重开和 `?demo=1` 自动演示。菜单、项目内本地 PNG、雷暴背景、程序化雨线、切角航电 HUD、品牌图标和竖屏横置提示均已完成。
+
+## 未完成项
+
+当前版本尚未包含音效或音乐、精英敌机的独立弹幕模式、武器升级、关卡波次、存档、排行榜、账号系统、可访问性设置或原生平台打包。相关技术债和已知限制见 `KNOWN_ISSUES.md`。
+
+## v0.02（本地整合，2026-08-18）
+
+- 将 Manus 交接包（`sky-striker`）整体平移到仓库根，成为可直接运行的项目；godogen 流程
+  参考文档移入 `docs/pipeline/`，交接包 zip 与需求文档归档至 `archive/`（不入库）。
+- 修复（详见 `KNOWN_ISSUES.md` 本地验收补丁）：
+  - K-13（严重，交接包回归）：玩家子弹越界回收边界错误，导致射击失效，已修复并实测。
+  - K-01：暂停键监听清理改为订阅 `Phaser.Scenes.Events.SHUTDOWN` 事件（原 `shutdown()`
+    方法不会被 Phaser 调用，属死代码）。
+  - K-12：移除 `client/index.html` 中 Manus 模板残留的 umami 占位脚本。
+- 变更：`client/src/game/game.ts` 增加 DEV 调试钩子 `window.__skyStriker`；README 补充
+  pnpm 版本注意事项。
+- 环境：安装依赖统一使用 `corepack pnpm install --frozen-lockfile`（pnpm 10.4.1）。

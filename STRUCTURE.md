@@ -16,7 +16,7 @@ Sky Striker 使用 React 仅承载页面、字体和 Phaser 生命周期；战�
 
 ## Asset Hints
 
-`storm_background` 绘制为两张满屏背景交替下移；`player_interceptor`、`enemy_drone` 与 `sky_striker_mark` 以生成资源 URL 加载。程序化资源仅用于高频、小尺寸、具备明确几何形状的对象：子弹、护盾、爆炸与雨线。详见 `ASSETS.md`。
+`storm_background` 绘制为两张满屏背景交替下移；`player_interceptor`、`enemy_drone` 与 `sky_striker_mark` 从 `client/public/assets/` 以 `/assets/` 本地路径加载。程序化资源仅用于高频、小尺寸、具备明确几何形状的对象：子弹、护盾、爆炸与雨线。详见 `ASSETS.md`。
 
 ## Verification Contract
 
