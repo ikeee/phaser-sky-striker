@@ -1,0 +1,130 @@
+/* 赤道雷暴行动：深海蓝绿底、雷暴琥珀强调、信息青绿反馈；网页层退后，16:9 游戏画布居于视觉中心。 */
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  color-scheme: dark;
+  --background: #061a22;
+  --foreground: #e9fffa;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  min-width: 320px;
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  overflow: hidden;
+}
+
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]) {
+  cursor: pointer;
+}
+
+.game-shell {
+  min-height: 100dvh;
+  width: 100%;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 25%, rgb(29 103 113 / 45%), transparent 36rem),
+    linear-gradient(135deg, #041319 0%, #071e28 44%, #02080e 100%);
+}
+
+.game-shell::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.22;
+  background-image: linear-gradient(to bottom, transparent 48%, rgb(143 255 237 / 12%) 50%, transparent 52%);
+  background-size: 100% 5px;
+  mix-blend-mode: screen;
+}
+
+.game-mount {
+  width: min(100vw, calc(100dvh * 1.7777778));
+  aspect-ratio: 16 / 9;
+  position: relative;
+  isolation: isolate;
+  box-shadow: 0 26px 90px rgb(0 0 0 / 62%), 0 0 0 1px rgb(68 245 214 / 22%);
+}
+
+.game-mount canvas {
+  display: block;
+  outline: none;
+}
+
+.orientation-hint {
+  display: none;
+}
+
+@media (max-width: 720px) {
+  .game-mount {
+    width: 100vw;
+    box-shadow: none;
+  }
+}
+
+@media (max-width: 720px) and (orientation: portrait) {
+  .game-mount {
+    visibility: hidden;
+  }
+
+  .orientation-hint {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-content: center;
+    gap: 14px;
+    text-align: center;
+    color: #e9fffa;
+    font-family: "Noto Sans SC", sans-serif;
+    letter-spacing: 0.18em;
+    text-indent: 0.18em;
+  }
+
+  .orientation-hint strong {
+    color: #ffb43d;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 18px;
+  }
+
+  .orientation-hint span:last-child {
+    color: #75a6a2;
+    font-size: 12px;
+  }
+
+  .orientation-mark {
+    display: grid;
+    place-items: center;
+    width: 64px;
+    height: 44px;
+    margin: 0 auto 8px;
+    color: #44f5d6;
+    border: 1px solid rgb(68 245 214 / 60%);
+    clip-path: polygon(18% 0, 100% 0, 100% 75%, 82% 100%, 0 100%, 0 25%);
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 28px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .game-shell::before {
+    display: none;
+  }
+}
