@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH } from "../game";
 import { setMuted, sfx, unlockAudio } from "../audio";
+import { WAVES } from "../waves";
 
 type Ship = Phaser.Physics.Arcade.Sprite;
 
@@ -25,9 +26,12 @@ export class BattleScene extends Phaser.Scene {
   private armorPips: Phaser.GameObjects.Rectangle[] = [];
   private pauseLabel!: Phaser.GameObjects.Text;
   private statusText!: Phaser.GameObjects.Text;
-  private spawnTimer?: Phaser.Time.TimerEvent;
+  private waveText!: Phaser.GameObjects.Text;
   private enemyShotTimer?: Phaser.Time.TimerEvent;
   private shieldTimer?: Phaser.Time.TimerEvent;
+  private waveIndex = -1;
+  private wavePending = 0;
+  private waveActive = false;
   private fireAt = 0;
   private score = 0;
   private combo = 0;
@@ -127,6 +131,7 @@ export class BattleScene extends Phaser.Scene {
     this.add.text(28, 18, "STRIKE SCORE", { fontFamily: "IBM Plex Mono, monospace", fontSize: "13px", color: "#83ADAA" }).setDepth(31);
     this.scoreText = this.add.text(28, 37, "000 000", { fontFamily: "IBM Plex Mono, monospace", fontSize: "30px", fontStyle: "bold", color: "#F1FFFB" }).setDepth(31);
     this.comboText = this.add.text(260, 49, "× 0", { fontFamily: "IBM Plex Mono, monospace", fontSize: "18px", color: "#44F5D6" }).setDepth(31);
+    this.waveText = this.add.text(28, 84, "WAVE --", { fontFamily: "IBM Plex Mono, monospace", fontSize: "14px", fontStyle: "bold", color: "#FFB43D", letterSpacing: 1 }).setDepth(31);
 
     this.add.text(GAME_WIDTH - 28, 18, "ARMOR / ION", { fontFamily: "IBM Plex Mono, monospace", fontSize: "13px", color: "#DDC391" }).setOrigin(1, 0).setDepth(31);
     for (let i = 0; i < 3; i += 1) {
@@ -199,9 +204,57 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private startTimers() {
-    this.spawnTimer = this.time.addEvent({ delay: 720, loop: true, callback: this.spawnEnemy, callbackScope: this });
     this.enemyShotTimer = this.time.addEvent({ delay: 1250, loop: true, callback: this.fireEnemyVolley, callbackScope: this });
     this.shieldTimer = this.time.addEvent({ delay: 11000, loop: true, callback: this.spawnShield, callbackScope: this });
+    this.startWaves();
+  }
+
+  /** 波次系统：数据配置见 `waves.ts`，清波后自动推进；跑完定义波次后进入无尽循环并逐步加强。 */
+  private startWaves() {
+    this.waveIndex = -1;
+    this.waveActive = false;
+    this.advanceWave();
+  }
+
+  private advanceWave() {
+    this.waveIndex += 1;
+    const wave = WAVES[this.waveIndex % WAVES.length];
+    const loop = Math.floor(this.waveIndex / WAVES.length);
+    this.wavePending = 0;
+    this.waveActive = true;
+    this.waveText.setText(`WAVE ${String(this.waveIndex + 1).padStart(2, "0")}`);
+    this.statusText.setText(`WAVE ${this.waveIndex + 1}`);
+    this.time.delayedCall(1600, () => {
+      if (!this.ended && !this.paused) this.statusText.setText("");
+    });
+    for (const group of wave) {
+      const count = group.count + loop * 2;
+      const interval = Math.max(300, group.interval - loop * 60);
+      for (let n = 0; n < count; n += 1) {
+        this.wavePending += 1;
+        this.time.delayedCall(group.delay + n * interval, () => {
+          this.wavePending = Math.max(0, this.wavePending - 1);
+          if (!this.paused && !this.ended) this.spawnEnemy(undefined, undefined, group.kind === "elite");
+        });
+      }
+    }
+    this.updateHud();
+  }
+
+  private updateWaveProgress() {
+    if (this.ended || this.paused || !this.waveActive) return;
+    if (this.wavePending !== 0 || this.enemies.countActive() !== 0) return;
+    this.waveActive = false;
+    const bonus = 300 + this.waveIndex * 100;
+    this.score += bonus;
+    this.statusText.setText(`WAVE CLEAR  +${bonus}`);
+    this.updateHud();
+    this.time.delayedCall(1800, () => {
+      if (!this.ended && !this.paused) {
+        this.statusText.setText("");
+        this.advanceWave();
+      }
+    });
   }
 
   update(time: number, delta: number) {
@@ -209,6 +262,7 @@ export class BattleScene extends Phaser.Scene {
     this.scrollBackdrop(delta);
     this.updatePlayer(time);
     this.updateEntities();
+    this.updateWaveProgress();
     if (time > this.fireAt) {
       this.firePlayerBullet();
       this.fireAt = time + 180;
@@ -258,14 +312,13 @@ export class BattleScene extends Phaser.Scene {
     clean(this.enemyBullets, -80, GAME_HEIGHT + 80);
     clean(this.enemies, -80, GAME_HEIGHT + 90);
     clean(this.pickups, -80, GAME_HEIGHT + 90);
-    this.enemyBullets.children.forEach((child) => {
-      const bullet = child as Ship;
-      if (bullet.active && bullet.getData("tracking")) this.steerEnemyBullet(bullet, 300);
-    });
     this.enemies.children.forEach((child) => {
       const enemy = child as Ship;
       if (!enemy.active) return;
-      enemy.setVelocityX((enemy.getData("drift") as number) * 95);
+      // 真正的正弦摆动航线（沿生成点横向往返），替代原来的直线斜漂。
+      const drift = enemy.getData("drift") as number;
+      const phase = enemy.getData("phase") as number;
+      enemy.setVelocityX(Math.cos(this.time.now / 800 + phase) * drift * 260);
     });
   }
 
@@ -278,17 +331,17 @@ export class BattleScene extends Phaser.Scene {
     sfx.fire();
   }
 
-  private spawnEnemy(x = Phaser.Math.Between(150, GAME_WIDTH - 150), startY = -70, forcedElite?: boolean) {
+  private spawnEnemy(x = Phaser.Math.Between(150, GAME_WIDTH - 150), startY = -70, forcedElite = false) {
     if (this.ended) return;
     const key = this.textures.exists("enemy-drone") ? "enemy-drone" : "blast";
-    const elite = forcedElite ?? Phaser.Math.Between(0, 7) === 0;
+    const elite = forcedElite;
     const enemy = this.enemies.get(x, startY, key) as Ship | null;
     if (!enemy) return;
     enemy.enableBody(true, x, startY, true, true);
     const size = elite ? 82 : 64;
     enemy.setDisplaySize(size, size).setVelocityY(elite ? 125 : Phaser.Math.Between(180, 260)).setDepth(8);
     enemy.setDataEnabled();
-    enemy.setData({ hp: elite ? 3 : 1, elite, drift: Phaser.Math.FloatBetween(-0.55, 0.55) });
+    enemy.setData({ hp: elite ? 3 : 1, elite, drift: Phaser.Math.FloatBetween(0.35, 1), phase: Phaser.Math.FloatBetween(0, Math.PI * 2) });
     enemy.body?.setSize(size * 0.65, size * 0.65, true);
     if (elite) enemy.setTint(0xffcc86);
     else enemy.setTint(0xff866f);
@@ -307,19 +360,20 @@ export class BattleScene extends Phaser.Scene {
 
   private fireEnemyBullet(enemy: Ship) {
     if (this.ended || !enemy.active) return;
-    const bullet = this.enemyBullets.get(enemy.x, enemy.y + 36, "enemy-bullet") as Ship | null;
-    if (!bullet) return;
-    bullet.enableBody(true, enemy.x, enemy.y + 36, true, true);
-    bullet.setDisplaySize(14, 14).setDepth(7);
-    bullet.setDataEnabled();
-    bullet.setData("tracking", true);
-    bullet.body?.setSize(12, 12, true);
-    this.steerEnemyBullet(bullet, 300);
-  }
-
-  private steerEnemyBullet(bullet: Ship, speed: number) {
-    const angle = Phaser.Math.Angle.Between(bullet.x, bullet.y, this.player.x, this.player.y);
-    bullet.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed);
+    const elite = Boolean(enemy.getData("elite"));
+    // 发射瞬间瞄准玩家（经典 STG 直射）；精英机打 5 发扇形弹幕。
+    const base = Phaser.Math.Angle.Between(enemy.x, enemy.y, this.player.x, this.player.y);
+    const speed = elite ? 270 : 300;
+    const spread = elite ? [-0.34, -0.17, 0, 0.17, 0.34] : [0];
+    for (const off of spread) {
+      const bullet = this.enemyBullets.get(enemy.x, enemy.y + 36, "enemy-bullet") as Ship | null;
+      if (!bullet) continue;
+      const a = base + off;
+      bullet.enableBody(true, enemy.x, enemy.y + 36, true, true);
+      bullet.setDisplaySize(14, 14).setDepth(7);
+      bullet.body?.setSize(12, 12, true);
+      bullet.setVelocity(Math.cos(a) * speed, Math.sin(a) * speed);
+    }
   }
 
   private spawnShield() {
@@ -399,7 +453,6 @@ export class BattleScene extends Phaser.Scene {
     if (this.paused) {
       this.physics.pause();
       this.tweens.pauseAll();
-      if (this.spawnTimer) this.spawnTimer.paused = true;
       if (this.enemyShotTimer) this.enemyShotTimer.paused = true;
       if (this.shieldTimer) this.shieldTimer.paused = true;
       this.pauseLabel.setText("[ P ] 继续");
@@ -407,7 +460,6 @@ export class BattleScene extends Phaser.Scene {
     } else {
       this.physics.resume();
       this.tweens.resumeAll();
-      if (this.spawnTimer) this.spawnTimer.paused = false;
       if (this.enemyShotTimer) this.enemyShotTimer.paused = false;
       if (this.shieldTimer) this.shieldTimer.paused = false;
       this.pauseLabel.setText("[ P ] 暂停");
@@ -419,7 +471,6 @@ export class BattleScene extends Phaser.Scene {
     this.ended = true;
     sfx.gameOver();
     this.player.setVelocity(0, 0).setAlpha(0.45);
-    this.spawnTimer?.remove(false);
     this.enemyShotTimer?.remove(false);
     this.shieldTimer?.remove(false);
     const overlay = this.add.container(GAME_WIDTH / 2, GAME_HEIGHT / 2).setDepth(50);
@@ -440,7 +491,6 @@ export class BattleScene extends Phaser.Scene {
     if (this.soundHandler) this.input.keyboard?.off("keydown-M", this.soundHandler);
     this.pauseHandler = undefined;
     this.soundHandler = undefined;
-    this.spawnTimer?.remove(false);
     this.enemyShotTimer?.remove(false);
     this.shieldTimer?.remove(false);
     this.tweens.killAll();

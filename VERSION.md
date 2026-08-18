@@ -50,3 +50,13 @@
     `ManusDialog.tsx`（无引用）、`const.ts`（模板 OAuth 代码，无引用）、`shared/`、
     `template.json`、`.project-config.json`、`.manus/`、`.manus-logs/`。
 - 验证：`pnpm check` / `pnpm build` 通过；`?demo=1` 实测战斗正常，console 0 错误 0 警告。
+
+## v0.03（2026-08-18）
+
+- 新增 **JSON 数据驱动波次系统**（`client/src/game/waves.ts`）：6 个定义波次 + 无尽循环
+  加强；清波奖励分、HUD 显示 WAVE 编号、自动推进。
+- 敌弹改造：普通敌弹改"发射瞬间瞄准直射"（经典 STG 设计，替代连续追踪）；**精英机 5 发
+  扇形弹幕**（±20°、略慢）。
+- 敌机漂移改**真正弦摆动航线**（沿生成点横向往返），与 PLAN 声明的"摆动"一致。
+- 验证：`?demo=1` 实测 42 秒推进到 WAVE 04、清波奖励生效、精英扇形弹幕发射角正确；
+  `pnpm check` / `pnpm build` 通过。

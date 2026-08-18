@@ -26,7 +26,7 @@ Sky Striker 是一款单人、浏览器内运行的 2D 纵向卷轴飞机射击�
 
 ## Main Build
 
-游戏主循环由 `BootScene`、`MenuScene` 与 `BattleScene` 组成。菜单进入战斗后，玩家可四向移动并自动射击；普通敌机会沿轻微摆动航线向下压迫，精英敌机会更慢且更耐久。击落敌机增加分数和连击；连击阈值提高分数倍率；护盾拾取物恢复一格装甲。游戏保留键盘、触摸、暂停与音效开关控制，并在 `?demo` 参数下启用可预测的自动驾驶，便于验证截图中展示真实战斗。
+游戏主循环由 `BootScene`、`MenuScene` 与 `BattleScene` 组成。菜单进入战斗后，玩家可四向移动并自动射击；战斗以 **JSON 数据驱动的波次系统**（`waves.ts`）推进：普通敌机沿正弦摆动航线向下压迫、发射"发射瞬间瞄准"的直射弹；精英敌机更慢、更耐久，发射 5 发扇形弹幕；清波获得奖励分并自动进入下一波（定义 6 波后无尽循环加强）。击落敌机增加分数和连击；连击阈值提高分数倍率；护盾拾取物恢复一格装甲。游戏保留键盘、触摸、暂停与音效开关控制，并在 `?demo` 参数下启用可预测的自动驾驶，便于验证截图中展示真实战斗。
 
 - **Assets:** `storm_background` 作为纵向滚动云海；`player_interceptor` 作为 80×80 px 玩家机；`enemy_drone` 作为 64×64 px 敌机（精英 82×82 px）；`sky_striker_mark` 用于开始屏与 HUD；`player_bullet`、`enemy_bullet`、`shield_pickup`、`explosion`、`rain_streak` 由 Phaser 图形 API 生成并复用。完整规格见 `ASSETS.md`。
 - **Verify:**
