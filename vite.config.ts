@@ -221,8 +221,8 @@ export default defineConfig({
     emptyOutDir: true,
   },
   server: {
-    port: 3000,
-    strictPort: false, // Will find next available port if 3000 is busy
+      port: 5173,
+      strictPort: true, // 固定 5173：与本地 Nuxt(3000) 等其他项目隔离，端口占用时直接报错
     host: true,
     allowedHosts: [
       ".manuspre.computer",

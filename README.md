@@ -22,12 +22,12 @@ pnpm install
 pnpm dev
 ```
 
-Vite 会在终端输出本地访问地址，通常为 `http://localhost:3000/`。点击“锁定航线”或按 Enter 即可进入战斗。
+Vite 会在终端输出本地访问地址，固定为 `http://localhost:5173/`（与本地 Nuxt 的 3000 端口隔离）。点击“锁定航线”或按 Enter 即可进入战斗。
 
 要验证可重复的真实战斗画面，请访问：
 
 ```text
-http://localhost:3000/?demo=1
+http://localhost:5173/?demo=1
 ```
 
 `?demo=1` 会自动进入战斗、让玩家机沿确定性横向轨迹移动，并预置一组敌机。它用于截图、视觉回归和快速确认本地资产、对象池与战斗 HUD 均已加载。

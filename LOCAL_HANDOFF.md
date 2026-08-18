@@ -33,7 +33,7 @@ pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-Vite 会输出本地地址，通常为 `http://localhost:3000/`。进入首页后，点击“锁定航线”或按 Enter 开始任务。若要直接观察可重复的真实战斗画面，可访问 `http://localhost:3000/?demo=1`；该模式会自动进入战斗、以固定轨迹操控玩家机，并预置敌机编队，适合截图或视觉回归检查。
+Vite 会输出本地地址，固定为 `http://localhost:5173/`（与本地 Nuxt 的 3000 端口隔离）。进入首页后，点击“锁定航线”或按 Enter 开始任务。若要直接观察可重复的真实战斗画面，可访问 `http://localhost:5173/?demo=1`；该模式会自动进入战斗、以固定轨迹操控玩家机，并预置敌机编队，适合截图或视觉回归检查。
 
 > `BootScene` 默认从 `/assets/` 载入项目内 PNG。项目不再依赖已发布网页或任何 Manus 托管资源 URL。
 
