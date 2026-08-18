@@ -60,3 +60,17 @@
 - 敌机漂移改**真正弦摆动航线**（沿生成点横向往返），与 PLAN 声明的"摆动"一致。
 - 验证：`?demo=1` 实测 42 秒推进到 WAVE 04、清波奖励生效、精英扇形弹幕发射角正确；
   `pnpm check` / `pnpm build` 通过。
+
+## v0.04（2026-08-18）
+
+- 程序化 **BGM**：`audio.ts` 音序器（Am-F-C-G 循环、低音+琶音），随首次手势解锁启动，
+  M 键静音一并生效。
+- **localStorage 最高分**（HUD 显示 HI，结算页 NEW RECORD / HIGH SCORE）与**简易成就**
+  （首个击杀 / 连击×5 / 首次清波 / 满甲修复，首次解锁提示，浏览器维度持久）。
+- **URL 教学调参**：`?wave=&speed=&armor=&fire=`（README 已文档化，适合课堂"数据驱动
+  设计"实验）。
+- **源码瘦身**：删除 49 个未用 shadcn/ui 组件 + 4 个孤儿文件（Map、useComposition、
+  useMobile、usePersistFn）；bundle 2018→1978 KB（主要重量仍是 Phaser，瘦身主要是
+  源码可读性收益）。
+- 验证：`?demo=1&wave=4&armor=9&fire=90` 实测参数全部生效；BGM 随手势启动无报错；
+  `pnpm check` / `pnpm build` 通过。

@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH } from "../game";
 import { setMuted, sfx, unlockAudio } from "../audio";
 import { WAVES } from "../waves";
+import { ACHIEVEMENTS, getHighScore, setHighScore, unlockAchievement } from "../storage";
 
 type Ship = Phaser.Physics.Arcade.Sprite;
 
@@ -23,6 +24,7 @@ export class BattleScene extends Phaser.Scene {
   private rainLayer!: Phaser.GameObjects.TileSprite;
   private scoreText!: Phaser.GameObjects.Text;
   private comboText!: Phaser.GameObjects.Text;
+  private hiText!: Phaser.GameObjects.Text;
   private armorPips: Phaser.GameObjects.Rectangle[] = [];
   private pauseLabel!: Phaser.GameObjects.Text;
   private statusText!: Phaser.GameObjects.Text;
@@ -32,6 +34,9 @@ export class BattleScene extends Phaser.Scene {
   private waveIndex = -1;
   private wavePending = 0;
   private waveActive = false;
+  private fireInterval = 180;
+  private speedScale = 1;
+  private startWaveOverride: number | null = null;
   private fireAt = 0;
   private score = 0;
   private combo = 0;
@@ -60,6 +65,16 @@ export class BattleScene extends Phaser.Scene {
     this.ended = false;
     this.paused = false;
     this.invulnerable = false;
+    // URL 调参（教学面板）：?wave=N &speed=X &armor=N &fire=ms（armor 需在重置之后应用）
+    const q = new URLSearchParams(window.location.search);
+    const waveParam = Number(q.get("wave"));
+    if (Number.isFinite(waveParam) && waveParam >= 1) this.startWaveOverride = Math.floor(waveParam);
+    const speedParam = Number(q.get("speed"));
+    if (Number.isFinite(speedParam) && speedParam > 0) this.speedScale = speedParam;
+    const armorParam = Number(q.get("armor"));
+    if (Number.isFinite(armorParam) && armorParam >= 1 && armorParam <= 9) this.armor = Math.floor(armorParam);
+    const fireParam = Number(q.get("fire"));
+    if (Number.isFinite(fireParam) && fireParam >= 60) this.fireInterval = Math.floor(fireParam);
     this.createBackdrop();
     this.createGroups();
     this.createPlayer();
@@ -132,6 +147,7 @@ export class BattleScene extends Phaser.Scene {
     this.scoreText = this.add.text(28, 37, "000 000", { fontFamily: "IBM Plex Mono, monospace", fontSize: "30px", fontStyle: "bold", color: "#F1FFFB" }).setDepth(31);
     this.comboText = this.add.text(260, 49, "× 0", { fontFamily: "IBM Plex Mono, monospace", fontSize: "18px", color: "#44F5D6" }).setDepth(31);
     this.waveText = this.add.text(28, 84, "WAVE --", { fontFamily: "IBM Plex Mono, monospace", fontSize: "14px", fontStyle: "bold", color: "#FFB43D", letterSpacing: 1 }).setDepth(31);
+    this.hiText = this.add.text(GAME_WIDTH - 28, 84, `HI ${this.formatScore(getHighScore())}`, { fontFamily: "IBM Plex Mono, monospace", fontSize: "13px", color: "#DDC391" }).setOrigin(1, 0).setDepth(31);
 
     this.add.text(GAME_WIDTH - 28, 18, "ARMOR / ION", { fontFamily: "IBM Plex Mono, monospace", fontSize: "13px", color: "#DDC391" }).setOrigin(1, 0).setDepth(31);
     for (let i = 0; i < 3; i += 1) {
@@ -211,7 +227,7 @@ export class BattleScene extends Phaser.Scene {
 
   /** 波次系统：数据配置见 `waves.ts`，清波后自动推进；跑完定义波次后进入无尽循环并逐步加强。 */
   private startWaves() {
-    this.waveIndex = -1;
+    this.waveIndex = (this.startWaveOverride ?? 1) - 2;
     this.waveActive = false;
     this.advanceWave();
   }
@@ -248,6 +264,7 @@ export class BattleScene extends Phaser.Scene {
     const bonus = 300 + this.waveIndex * 100;
     this.score += bonus;
     this.statusText.setText(`WAVE CLEAR  +${bonus}`);
+    if (unlockAchievement("firstWave")) this.showAchievement(`成就：${ACHIEVEMENTS.firstWave}`);
     this.updateHud();
     this.time.delayedCall(1800, () => {
       if (!this.ended && !this.paused) {
@@ -265,7 +282,7 @@ export class BattleScene extends Phaser.Scene {
     this.updateWaveProgress();
     if (time > this.fireAt) {
       this.firePlayerBullet();
-      this.fireAt = time + 180;
+      this.fireAt = time + this.fireInterval;
     }
   }
 
@@ -339,7 +356,7 @@ export class BattleScene extends Phaser.Scene {
     if (!enemy) return;
     enemy.enableBody(true, x, startY, true, true);
     const size = elite ? 82 : 64;
-    enemy.setDisplaySize(size, size).setVelocityY(elite ? 125 : Phaser.Math.Between(180, 260)).setDepth(8);
+    enemy.setDisplaySize(size, size).setVelocityY((elite ? 125 : Phaser.Math.Between(180, 260)) * this.speedScale).setDepth(8);
     enemy.setDataEnabled();
     enemy.setData({ hp: elite ? 3 : 1, elite, drift: Phaser.Math.FloatBetween(0.35, 1), phase: Phaser.Math.FloatBetween(0, Math.PI * 2) });
     enemy.body?.setSize(size * 0.65, size * 0.65, true);
@@ -400,6 +417,8 @@ export class BattleScene extends Phaser.Scene {
     const points = enemy.getData("elite") ? 550 : 100;
     this.score += points * Math.max(1, Math.floor(this.combo / 5) + 1);
     this.combo += 1;
+    if (unlockAchievement("firstKill")) this.showAchievement(`成就：${ACHIEVEMENTS.firstKill}`);
+    if (this.combo >= 5 && unlockAchievement("combo5")) this.showAchievement(`成就：${ACHIEVEMENTS.combo5}`);
     if (enemy.getData("elite")) sfx.eliteDown();
     else sfx.enemyDown();
     this.explode(enemy.x, enemy.y);
@@ -429,6 +448,7 @@ export class BattleScene extends Phaser.Scene {
     pickup.disableBody(true, true);
     sfx.shield();
     this.armor = Math.min(3, this.armor + 1);
+    if (this.armor === 3 && unlockAchievement("fullArmor")) this.showAchievement(`成就：${ACHIEVEMENTS.fullArmor}`);
     this.score += 180;
     this.statusText.setText("ION SHIELD RESTORED");
     this.time.delayedCall(1300, () => { if (!this.ended) this.statusText.setText(""); });
@@ -441,10 +461,22 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private updateHud() {
-    const scoreString = Math.max(0, this.score).toString().padStart(6, "0");
-    this.scoreText.setText(scoreString.replace(/\B(?=(\d{3})+(?!\d))/g, " "));
+    setHighScore(this.score);
+    this.scoreText.setText(this.formatScore(this.score));
     this.comboText.setText(`× ${this.combo}`);
+    this.hiText.setText(`HI ${this.formatScore(getHighScore())}`);
     this.armorPips.forEach((pip, index) => pip.setFillStyle(index < this.armor ? 0xffb43d : 0x39545a, index < this.armor ? 1 : 0.7));
+  }
+
+  private formatScore(v: number): string {
+    return Math.max(0, v).toString().padStart(6, "0").replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  }
+
+  private showAchievement(text: string) {
+    this.statusText.setText(text);
+    this.time.delayedCall(1600, () => {
+      if (!this.ended && !this.paused) this.statusText.setText("");
+    });
   }
 
   private togglePause() {
@@ -476,10 +508,12 @@ export class BattleScene extends Phaser.Scene {
     const overlay = this.add.container(GAME_WIDTH / 2, GAME_HEIGHT / 2).setDepth(50);
     const veil = this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x031017, 0.76);
     const title = this.add.text(0, -80, "AIRFRAME LOST", { fontFamily: "Barlow Condensed, sans-serif", fontSize: "64px", fontStyle: "bold italic", color: "#FFF3D4", letterSpacing: 3 }).setOrigin(0.5);
-    const score = this.add.text(0, -11, `FINAL SCORE  ${this.score.toString().padStart(6, "0")}`, { fontFamily: "IBM Plex Mono, monospace", fontSize: "22px", color: "#44F5D6" }).setOrigin(0.5);
-    const prompt = this.add.text(0, 43, "任务重启：把这一次飞得更深。", { fontFamily: "Noto Sans SC, sans-serif", fontSize: "18px", color: "#C3D8D7" }).setOrigin(0.5);
+    const newRecord = setHighScore(this.score);
+    const score = this.add.text(0, -26, `FINAL SCORE  ${this.formatScore(this.score)}`, { fontFamily: "IBM Plex Mono, monospace", fontSize: "22px", color: "#44F5D6" }).setOrigin(0.5);
+    const record = this.add.text(0, 4, newRecord ? "NEW RECORD" : `HIGH SCORE  ${this.formatScore(getHighScore())}`, { fontFamily: "IBM Plex Mono, monospace", fontSize: "16px", color: newRecord ? "#FFB43D" : "#AFC6C5", letterSpacing: 2 }).setOrigin(0.5);
+    const prompt = this.add.text(0, 52, "任务重启：把这一次飞得更深。", { fontFamily: "Noto Sans SC, sans-serif", fontSize: "18px", color: "#C3D8D7" }).setOrigin(0.5);
     const button = this.add.text(0, 119, "[ ENTER ] 重新起飞", { fontFamily: "IBM Plex Mono, monospace", fontSize: "20px", fontStyle: "bold", color: "#08222A", backgroundColor: "#FFB43D", padding: { x: 26, y: 14 } }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-    overlay.add([veil, title, score, prompt, button]);
+    overlay.add([veil, title, score, record, prompt, button]);
     const restart = () => this.scene.restart();
     button.on("pointerdown", restart);
     this.input.keyboard?.once("keydown-ENTER", restart);

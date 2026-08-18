@@ -23,6 +23,7 @@ export function unlockAudio(): void {
     master.connect(ctx.destination);
   }
   if (ctx.state === "suspended") void ctx.resume();
+  startBgm();
 }
 
 export function setMuted(m: boolean): void {
@@ -120,3 +121,55 @@ export const sfx = {
     tone({ freq: 520, endFreq: 800, type: "triangle", duration: 0.06, volume: 0.13 });
   },
 };
+
+/**
+ * 程序化 BGM：8 小节 Am-F-C-G 循环，低音（三角波）+ 琶音（方波）两层。
+ * 用 setTimeout 按 16 分音符步进调度；与音效共用 master 总线，M 键静音会一并生效。
+ */
+const BGM_BARS = 4;
+const BGM_STEPS = BGM_BARS * 16;
+const BGM_BPM = 112;
+const BGM_STEP_SEC = 60 / BGM_BPM / 4;
+
+// 和弦进行：Am - F - C - G
+const BASS_FREQ = [110.0, 87.31, 130.81, 98.0]; // A2 F2 C3 G2
+const FIFTH_FREQ = [164.81, 130.81, 196.0, 146.83]; // E3 C3 G3 D3
+const ARP_FREQ = [220.0, 261.63, 329.63, 392.0]; // A3 C4 E4 G4
+
+let bgmTimer: ReturnType<typeof setTimeout> | null = null;
+let bgmStep = 0;
+
+function scheduleBgmStep(): void {
+  if (!ctx) {
+    bgmTimer = null;
+    return;
+  }
+  const bar = Math.floor(bgmStep / 16) % BGM_BARS;
+  const stepInBar = bgmStep % 16;
+
+  if (stepInBar === 0) {
+    tone({ freq: BASS_FREQ[bar], type: "triangle", duration: BGM_STEP_SEC * 3.5, volume: 0.16, delay: 0.02 });
+  } else if (stepInBar === 8) {
+    tone({ freq: FIFTH_FREQ[bar], type: "triangle", duration: BGM_STEP_SEC * 3.0, volume: 0.1, delay: 0.02 });
+  }
+  if (stepInBar % 4 === 0) {
+    const oct = bgmStep % 32 < 16 ? 1 : 2;
+    tone({ freq: ARP_FREQ[bar] * oct, type: "square", duration: BGM_STEP_SEC * 0.9, volume: 0.045, delay: 0.02 });
+  }
+
+  bgmStep = (bgmStep + 1) % BGM_STEPS;
+  bgmTimer = setTimeout(scheduleBgmStep, BGM_STEP_SEC * 1000);
+}
+
+export function startBgm(): void {
+  if (!ctx || bgmTimer !== null) return;
+  bgmStep = 0;
+  scheduleBgmStep();
+}
+
+export function stopBgm(): void {
+  if (bgmTimer !== null) {
+    clearTimeout(bgmTimer);
+    bgmTimer = null;
+  }
+}
